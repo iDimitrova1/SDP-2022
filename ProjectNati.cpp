@@ -21,6 +21,11 @@ struct Jivotno
         output << jiv.vid << endl << jiv.poroda << endl << jiv.age << endl << jiv.price << endl;
         return output;
     }
+
+    bool operator== (const Jivotno& jiv1)
+    {
+        if()...
+    }
 };
 
 string SetPoroda (const struct Jivotno & animal)
@@ -50,9 +55,15 @@ string SetPoroda (const struct Jivotno & animal)
 }
 
 Jivotno SetRandom (struct Jivotno & animal)
-{
-    animal.age = (rand() % 160);
-    animal.age /= 10;
+{   if(rand() % 9 > 6)
+    {
+        animal.age = (rand() % 160);
+        animal.age /= 10;
+    }
+    else
+    {   
+        animal.age = 0;
+    }
     animal.price = rand() % 501 + 81;
     int random = rand() % 10 + 1;
     if (random < 6)
@@ -195,6 +206,21 @@ class Shelter
         return balans;
     }
 
+    void AddAnimal (const Jivotno & animal, list<Jivotno> &list)
+    {
+        list.push_front(animal);
+    }
+
+    void RemoveAnimal (const Jivotno & animal, list<Jivotno> &list)
+    {
+        list.remove(animal);
+    }
+
+    void ChangeSvobodni (int a)
+    {
+        svobodni += a;
+    }
+
     private:
 
     const unsigned int MAX_Cap {30};
@@ -203,6 +229,24 @@ class Shelter
     double balans;
     unsigned int svobodni;
 };
+
+bool CompareAnimal (const Jivotno nalichno, const Jivotno tursi)
+{
+    if(nalichno.vid == tursi.vid)
+    {
+        if(nalichno.poroda == tursi.poroda)
+        {
+            if(tursi.age != 0 && nalichno.age - tursi.age < 1.00)
+            {
+                if(nalichno.price < tursi.price)
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    return false;
+}
 
 void OneDay (Shelter &shel)
 {
@@ -213,7 +257,32 @@ void OneDay (Shelter &shel)
         temp = (my_it->price)*2;
         temp /= 100;
         shel.getBalans() -= temp;
+        my_it++;
     }
+    my_it = (shel.getListNalichni()).begin();
+    auto my_it2 = (shel.getListKlient()).begin();
+    while (my_it2 != (shel.getListKlient()).end())
+    {
+        while (my_it != (shel.getListNalichni()).end())
+        {
+            if(CompareAnimal(*my_it, *my_it2))
+            {
+                shel.RemoveAnimal(*my_it2, shel.getListNalichni());
+                shel.ChangeSvobodni(-1);
+                //da se promenq balansut ot prodajba i ot dobawqne
+            }
+            my_it++;
+        }
+
+        my_it2++;
+    }
+    ofstream new_file1, new_file2, new_balance;
+    new_file1.open("day.nalichni.txt");
+    new_file2.open("day.klient.txt");
+    new_balance.open("day.balance.txt");
+    shel.CopyListToFile(shel.getListNalichni(), new_file1);
+    shel.CopyListToFile(shel.getListKlient(), new_file2);
+    shel.CopyBalanceToFile(new_balance);
 }
 
 int main()
@@ -232,7 +301,7 @@ int main()
     // test.CopyBalanceToFile(BalanceFile);
     //BalanceFile.close();
     Shelter My_shelter ("my_file_nalichni.txt", "my_file_klient.txt", CopyFileToDouble("balance.txt"));
-    My_shelter.PrintList();
-
+    //My_shelter.PrintList();
+    OneDay(My_shelter);
  return 0;
 }
