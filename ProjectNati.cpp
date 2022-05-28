@@ -6,6 +6,7 @@
 #include<vector> 
 #include<fstream>
 #include<sstream>
+#include<iterator>
 
 using namespace std;
 
@@ -24,8 +25,12 @@ struct Jivotno
 
     bool operator== (const Jivotno& jiv1)
     {
-        if()...
+        return (vid    == jiv1.vid &&
+                poroda == jiv1.poroda &&
+                age    == jiv1.age &&
+                price  == jiv1.price);
     }
+       
 };
 
 string SetPoroda (const struct Jivotno & animal)
@@ -55,15 +60,9 @@ string SetPoroda (const struct Jivotno & animal)
 }
 
 Jivotno SetRandom (struct Jivotno & animal)
-{   if(rand() % 9 > 6)
-    {
-        animal.age = (rand() % 160);
-        animal.age /= 10;
-    }
-    else
-    {   
-        animal.age = 0;
-    }
+{
+    animal.age = (rand() % 160);
+    animal.age /= 10;
     animal.price = rand() % 501 + 81;
     int random = rand() % 10 + 1;
     if (random < 6)
@@ -206,19 +205,32 @@ class Shelter
         return balans;
     }
 
-    void AddAnimal (const Jivotno & animal, list<Jivotno> &list)
+    void addToBalans (int price)
     {
-        list.push_front(animal);
+        balans += price;
     }
 
-    void RemoveAnimal (const Jivotno & animal, list<Jivotno> &list)
+    void AddAnimal (const Jivotno & animal, list<Jivotno> &name_list)
     {
-        list.remove(animal);
+        name_list.push_front(animal);
+    }
+
+    void RemoveAnimal (const Jivotno & animal, list<Jivotno> &name_list)
+    {
+        balans += animal.price;
+        name_list.remove(animal);
     }
 
     void ChangeSvobodni (int a)
     {
         svobodni += a;
+    }
+
+    void AddRandomAnimal (list<Jivotno> &name_list)
+    {
+        Jivotno novo;
+        SetRandom(novo);
+        name_list.push_back(novo);
     }
 
     private:
@@ -232,50 +244,67 @@ class Shelter
 
 bool CompareAnimal (const Jivotno nalichno, const Jivotno tursi)
 {
-    if(nalichno.vid == tursi.vid)
-    {
-        if(nalichno.poroda == tursi.poroda)
-        {
-            if(tursi.age != 0 && nalichno.age - tursi.age < 1.00)
-            {
-                if(nalichno.price < tursi.price)
-                {
-                    return true;
-                }
-            }
-        }
-    }
-    return false;
+    return (nalichno.vid == tursi.vid &&
+            nalichno.poroda == tursi.poroda &&
+            (tursi.age != 0 && nalichno.age - tursi.age < 1.00) &&
+            nalichno.price <= tursi.price);
 }
 
 void OneDay (Shelter &shel)
 {
-    auto my_it = (shel.getListNalichni()).begin();
-    while (my_it != (shel.getListNalichni()).end())
+    if(rand()% 9 > 2)
+    {
+        shel.AddRandomAnimal(shel.getListNalichni());
+    }
+    if(rand()% 9 < 5)
+    {
+        shel.AddRandomAnimal(shel.getListKlient());
+    }
+
+    auto my_it = shel.getListNalichni().begin();
+    double sum{0};
+    while (my_it != shel.getListNalichni().end())
     {
         double temp{0};
         temp = (my_it->price)*2;
         temp /= 100;
+        sum += temp;
         shel.getBalans() -= temp;
         my_it++;
     }
-    my_it = (shel.getListNalichni()).begin();
-    auto my_it2 = (shel.getListKlient()).begin();
-    while (my_it2 != (shel.getListKlient()).end())
-    {
-        while (my_it != (shel.getListNalichni()).end())
-        {
-            if(CompareAnimal(*my_it, *my_it2))
-            {
-                shel.RemoveAnimal(*my_it2, shel.getListNalichni());
-                shel.ChangeSvobodni(-1);
-                //da se promenq balansut ot prodajba i ot dobawqne
-            }
-            my_it++;
-        }
+    cout << sum << endl;
 
-        my_it2++;
+    auto new_it = shel.getListNalichni().begin();
+    auto new_it2 = shel.getListKlient().begin();
+    Jivotno novo;
+    shel.getListKlient().push_front(novo);
+    while (new_it2 != (shel.getListKlient()).end())
+    {
+        while (new_it != (shel.getListNalichni()).end())
+        {
+            if(CompareAnimal(*new_it, *new_it2))
+            {
+                shel.addToBalans(-(new_it->price));
+                my_it = new_it;
+                new_it++;
+                shel.RemoveAnimal(*my_it, shel.getListNalichni());
+                my_it = new_it2;
+                new_it2--;
+                shel.RemoveAnimal(*my_it, shel.getListKlient());
+                shel.ChangeSvobodni(-1);
+                cout << "animal removed" << endl;
+                break;
+            }
+            else
+            {
+                new_it++;
+            }
+        }
+        new_it = shel.getListNalichni().begin();
+        new_it2++;
     }
+    shel.getListKlient().remove(novo);
+
     ofstream new_file1, new_file2, new_balance;
     new_file1.open("day.nalichni.txt");
     new_file2.open("day.klient.txt");
@@ -283,6 +312,9 @@ void OneDay (Shelter &shel)
     shel.CopyListToFile(shel.getListNalichni(), new_file1);
     shel.CopyListToFile(shel.getListKlient(), new_file2);
     shel.CopyBalanceToFile(new_balance);
+    new_file1.close();
+    new_file2.close();
+    new_balance.close();
 }
 
 int main()
@@ -294,14 +326,29 @@ int main()
     // MyFile2.open("my_file_klient.txt");
     // ofstream BalanceFile;
     // BalanceFile.open("balance.txt");
-    //Shelter test;
+    //Shelter testt;
     //test.PrintList();
     // test.CopyListToFile(test.getListNalichni(), MyFile1);
     // test.CopyListToFile(test.getListKlient(), MyFile2);
     // test.CopyBalanceToFile(BalanceFile);
     //BalanceFile.close();
-    Shelter My_shelter ("my_file_nalichni.txt", "my_file_klient.txt", CopyFileToDouble("balance.txt"));
+
+    //Shelter My_shelter ("my_file_nalichni.txt", "my_file_klient.txt", CopyFileToDouble("balance.txt"));
     //My_shelter.PrintList();
+    
+    Shelter My_shelter ("day.nalichni.txt", "day.klient.txt", CopyFileToDouble("day.balance.txt"));
+    for(int i{0}; i < 10; i++)
+    {
     OneDay(My_shelter);
+    }
+    
+    // Jivotno j_test;
+    // SetRandom(j_test);
+    // Jivotno j_test2 = j_test;
+    // cout<<boolalpha<<CompareAnimal(j_test,j_test2);
+    //testt.RemoveAnimal(j_test, test_list);
+    //cout << test_list.back();
+
+
  return 0;
 }
